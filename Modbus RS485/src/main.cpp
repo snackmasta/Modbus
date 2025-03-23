@@ -5,7 +5,6 @@
 #define RS485_CONTROL_PIN 2  // Connect DE and RE pins of MAX485 to this pin
 
 const int registerAddress = 0; // Modbus register address
-int value = 12345; // Value to send
 
 void setup() {
   // Initialize Serial for debugging (optional)
@@ -30,6 +29,12 @@ void setup() {
 }
 
 void loop() {
+  // Read the value from the A0 analog pin
+  int analogValue = analogRead(A0);
+
+  // Map the analog value (0-1023) to the range 101-200
+  int value = map(analogValue, 0, 1023, 101, 200);
+
   // Update the value in the holding register
   ModbusRTUServer.holdingRegisterWrite(registerAddress, value);
 

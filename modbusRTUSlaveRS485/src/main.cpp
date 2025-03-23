@@ -3,6 +3,7 @@
 
 // Define the DE/RE control pin for MAX485
 #define RS485_CONTROL_PIN 2  // Connect DE and RE pins of MAX485 to this pin
+#define BUTTON_PIN 8         // Define the button pin
 
 const int registerAddress = 0; // Modbus register address
 
@@ -23,22 +24,28 @@ void setup() {
 
   // Set the DE/RE control pin
   pinMode(RS485_CONTROL_PIN, OUTPUT);
+
+  // Set the button pin as input
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Use internal pull-up resistor
 }
 
 void loop() {
-  // Read the value from the holding register of server with ID 1
-  if (!ModbusRTUClient.requestFrom(1, HOLDING_REGISTERS, registerAddress, 1)) {
-    Serial.print("Failed to read holding register! ");
-    Serial.println(ModbusRTUClient.lastError());
-  } else {
-    // If the request succeeds, print the value
-    while (ModbusRTUClient.available()) {
-      int value = ModbusRTUClient.read();
-      Serial.print("Received value: ");
-      Serial.println(value);
+  // Check if the button is pressed
+  if (digitalRead(BUTTON_PIN) == HIGH) {
+    // Read the value from the holding register of server with ID 1
+    if (!ModbusRTUClient.requestFrom(1, HOLDING_REGISTERS, registerAddress, 1)) {
+      Serial.print("Failed to read holding register! ");
+      Serial.println(ModbusRTUClient.lastError());
+    } else {
+      // If the request succeeds, print the value
+      while (ModbusRTUClient.available()) {
+        int value = ModbusRTUClient.read();
+        Serial.print("Received value: ");
+        Serial.println(value);
+      }
     }
-  }
 
-  // Wait for a second before the next request
-  delay(1000);
+    // Wait for a second before the next request
+    delay(1000);
+  }
 }
