@@ -1,21 +1,24 @@
-#include <Arduino.h>
+#include <ArduinoRS485.h>  // ArduinoModbus depends on the ArduinoRS485 library
+#include <ArduinoModbus.h>
+
+const int registerAddress = 0; // Modbus register address
+int value = 12345; // Value to send
 
 void setup() {
-  // Initialize serial communication at 9600 baud rate
-  Serial.begin(9600);
+  // Start the Modbus RTU server
+  if (!ModbusRTUServer.begin(1, 9600)) {
+    Serial.println("Failed to start Modbus RTU Server!");
+    while (1);
+  }
+
+  // Configure a holding register at address 0
+  ModbusRTUServer.configureHoldingRegisters(registerAddress, 1);
 }
 
 void loop() {
-  // Check if data is available to read
-  if (Serial.available() > 0) {
-    // Read the incoming data as a string
-    String receivedData = Serial.readStringUntil('\n');
+  // Update the value in the holding register
+  ModbusRTUServer.holdingRegisterWrite(registerAddress, value);
 
-    // Convert the received string to an integer
-    int value = receivedData.toInt();
-
-    // Print the received value to the Serial Monitor
-    Serial.print("Received value: ");
-    Serial.println(value);
-  }
+  // Poll for Modbus requests
+  ModbusRTUServer.poll();
 }
