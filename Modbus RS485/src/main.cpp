@@ -1,32 +1,39 @@
-#include <ArduinoRS485.h>  // ArduinoModbus depends on the ArduinoRS485 library
-#include <ArduinoModbus.h>
+// Sender Code
+#include <Arduino.h>
+#include <SoftwareSerial.h>
 
-const int registerAddress = 0; // Modbus register address
-
+// Define the pins for the MAX485
+#define DE 3
+#define RE 2
+ 
+// Create a SoftwareSerial object to communicate with the MAX485
+SoftwareSerial RS485Serial(10, 11); // RX, TX
+ 
 void setup() {
+  // Initialize the serial communication
   Serial.begin(9600);
-
-  // Start the Modbus RTU client
-  if (!ModbusRTUClient.begin(9600)) {
-    Serial.println("Failed to start Modbus RTU Client!");
-    while (1);
-  }
+  RS485Serial.begin(9600);
+ 
+  // Set the DE and RE pins as outputs
+  pinMode(DE, OUTPUT);
+  pinMode(RE, OUTPUT);
+ 
+  // Set DE and RE high to enable transmission mode
+  digitalWrite(DE, HIGH);
+  digitalWrite(RE, HIGH);
 }
-
+ 
 void loop() {
-  // Read the value from the holding register
-  if (!ModbusRTUClient.requestFrom(1, HOLDING_REGISTERS, registerAddress, 1)) {
-    Serial.print("Failed to read holding register! ");
-    Serial.println(ModbusRTUClient.lastError());
-  } else {
-    // If the request succeeds, print the value
-    while (ModbusRTUClient.available()) {
-      int value = ModbusRTUClient.read();
-      Serial.print("Received value: ");
-      Serial.println(value);
-    }
-  }
-
-  // Wait for a second before the next request
-  delay(1000);
+  // Generate random data
+  int data = random(0, 100);
+ 
+  // Send data over RS485
+  RS485Serial.write(data);
+ 
+  // Print the sent data to the serial monitor
+  Serial.print("Data sent: ");
+  Serial.println(data);
+ 
+  // Wait for a while before sending the next data
+  delay(2000);
 }
