@@ -5,60 +5,88 @@
 #define RS485_CONTROL_PIN 2  // Connect DE and RE pins of MAX485 to this pin
 
 const int registerAddress = 0; // Modbus register address
-
-unsigned long lastRequestTime = 0; // Timestamp of the last Modbus request
-const unsigned long idleTimeout = 5000; // Idle timeout in milliseconds (5 seconds)
+unsigned long lastRequestTime = 0; 
+const unsigned long idleTimeout = 5000; // 5 seconds idle timeout
 bool idleMode = false;
 bool requestReceived = false;
 
+// **Function Declarations**
+void printModbusResponse(uint8_t slaveID, uint8_t functionCode, uint16_t regAddress, uint16_t data);
+uint16_t calculateCRC(uint8_t *buffer, uint8_t length);
+
 void setup() {
-  // Initialize Serial for debugging (optional)
   Serial.begin(115200);
-  while (!Serial); // Wait for Serial to be ready (for boards like Leonardo)
+  while (!Serial);
 
-  // Initialize RS485 with control pin
-  RS485.begin(115200); // Baud rate (115200 is good for long distances)
-  RS485.setDelays(10, 10); // Optional: Pre- and post-transmission delays in microseconds
+  RS485.begin(115200);
+  RS485.setDelays(10, 10); 
 
-  // Start the Modbus RTU server with slave ID 1
   if (!ModbusRTUServer.begin(1, 115200)) {
     Serial.println("Failed to start Modbus RTU Server!");
     while (1);
   }
 
-  // Configure a holding register at address 0
   ModbusRTUServer.configureHoldingRegisters(registerAddress, 1);
-
-  // Set the DE/RE control pin (handled automatically by ArduinoRS485 if defined)
   pinMode(RS485_CONTROL_PIN, OUTPUT);
 }
 
 void loop() {
-  // Read the value from the A0 analog pin
   int analogValue = analogRead(A0);
-
-  // Map the analog value (0-1023) to the range 101-200
   int value = map(analogValue, 0, 1023, 101, 200);
-
-  // Update the value in the holding register
   ModbusRTUServer.holdingRegisterWrite(registerAddress, value);
 
-  // Poll for Modbus requests
   requestReceived = ModbusRTUServer.poll();
   if (requestReceived) {
-    lastRequestTime = millis(); // Update the last request timestamp
-    idleMode = false; // Reset idle mode
-    // Optional: Debug output only if request received.
+    lastRequestTime = millis();
+    idleMode = false;
+
     Serial.println();
-    Serial.print("Register value: ");
-    Serial.print(value);
+    Serial.print("Register updated: ");
+    Serial.println(value);
+    
+    // Debugging: Print the expected Modbus response frame
+    printModbusResponse(1, 0x03, registerAddress, value);
     Serial.println();
   }
 
-  // Check for idle timeout
   if (millis() - lastRequestTime > idleTimeout) {
-    idleMode = true; // Enter idle mode
+    idleMode = true;
   }
 
-  delay(100); // Reduce delay to improve responsiveness
+  delay(100);
+}
+
+// **Function Definitions**
+void printModbusResponse(uint8_t slaveID, uint8_t functionCode, uint16_t regAddress, uint16_t data) {
+  uint8_t frame[8];
+
+  frame[0] = slaveID;
+  frame[1] = functionCode;
+  frame[2] = 2;  // Byte count (2 bytes for 1 register)
+  frame[3] = (data >> 8) & 0xFF; // High byte
+  frame[4] = data & 0xFF; // Low byte
+
+  uint16_t crc = calculateCRC(frame, 5);
+  frame[5] = crc & 0xFF; // CRC Low Byte
+  frame[6] = (crc >> 8) & 0xFF; // CRC High Byte
+
+  for (int i = 0; i < 7; i++) {
+    if (frame[i] < 0x10) Serial.print("0"); // Add leading zero if needed
+    Serial.print(frame[i], HEX);
+    Serial.print(" ");
+  }
+}
+
+uint16_t calculateCRC(uint8_t *buffer, uint8_t length) {
+  uint16_t crc = 0xFFFF;
+  for (uint8_t i = 0; i < length; i++) {
+    crc ^= buffer[i];
+    for (uint8_t j = 0; j < 8; j++) {
+      if (crc & 1)
+        crc = (crc >> 1) ^ 0xA001;
+      else
+        crc >>= 1;
+    }
+  }
+  return crc;
 }
