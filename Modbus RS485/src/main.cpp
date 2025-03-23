@@ -1,32 +1,50 @@
-#include <ArduinoRS485.h>  // ArduinoModbus depends on the ArduinoRS485 library
-#include <ArduinoModbus.h>
-
-const int registerAddress = 0; // Modbus register address
-
+// Receiver Code
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+ 
+// Define the pins for the MAX485
+#define DE 3
+#define RE 2
+ 
+// Create a SoftwareSerial object to communicate with the MAX485
+SoftwareSerial RS485Serial(10, 11); // RX, TX
+ 
 void setup() {
+  // Initialize the serial communication
   Serial.begin(9600);
+  RS485Serial.begin(9600);
+ 
+  // Set the DE and RE pins as outputs
+  pinMode(DE, OUTPUT);
+  pinMode(RE, OUTPUT);
+ 
+  // Set DE and RE low to enable receiving mode
+  digitalWrite(DE, LOW);
+  digitalWrite(RE, LOW);
 
-  // Start the Modbus RTU client
-  if (!ModbusRTUClient.begin(9600)) {
-    Serial.println("Failed to start Modbus RTU Client!");
-    while (1);
-  }
+  // Debug print
+  Serial.println("Setup complete. Receiver ready.");
 }
-
+ 
 void loop() {
-  // Read the value from the holding register
-  if (!ModbusRTUClient.requestFrom(1, HOLDING_REGISTERS, registerAddress, 1)) {
-    Serial.print("Failed to read holding register! ");
-    Serial.println(ModbusRTUClient.lastError());
+  // Debug print
+  Serial.println("Loop started. Checking for data...");
+  
+  if (RS485Serial.available()) {
+    // Read the received data
+    int receivedData = RS485Serial.read();
+ 
+    // Print the received data to the serial monitor
+    Serial.print("Data received: ");
+    Serial.println(receivedData);
+ 
+    // Print a successful message
+    Serial.println("Data successfully received.");
   } else {
-    // If the request succeeds, print the value
-    while (ModbusRTUClient.available()) {
-      int value = ModbusRTUClient.read();
-      Serial.print("Received value: ");
-      Serial.println(value);
-    }
+    // Debug print
+    Serial.println("No data available.");
   }
 
-  // Wait for a second before the next request
+  // Add a small delay to avoid flooding the serial monitor
   delay(1000);
 }
