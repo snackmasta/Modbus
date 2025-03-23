@@ -6,6 +6,11 @@
 
 const int registerAddress = 0; // Modbus register address
 
+unsigned long lastRequestTime = 0; // Timestamp of the last Modbus request
+const unsigned long idleTimeout = 5000; // Idle timeout in milliseconds (5 seconds)
+bool idleMode = false;
+bool requestReceived = false;
+
 void setup() {
   // Initialize Serial for debugging (optional)
   Serial.begin(9600);
@@ -39,10 +44,20 @@ void loop() {
   ModbusRTUServer.holdingRegisterWrite(registerAddress, value);
 
   // Poll for Modbus requests
-  ModbusRTUServer.poll();
+  requestReceived = ModbusRTUServer.poll();
+  if (requestReceived) {
+    lastRequestTime = millis(); // Update the last request timestamp
+    idleMode = false; // Reset idle mode
+    // Optional: Debug output only if request received.
+    Serial.print("Register value: ");
+    Serial.print(value);
+    Serial.println();
+  }
 
-  // Optional: Debug output
-  Serial.print("Register value: ");
-  Serial.println(value);
-  delay(1000); // Slow down for testing
+  // Check for idle timeout
+  if (millis() - lastRequestTime > idleTimeout) {
+    idleMode = true; // Enter idle mode
+  }
+
+  delay(100); // Reduce delay to improve responsiveness
 }
