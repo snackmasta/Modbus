@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "Modbus RS485",
+			"path": "."
+		},
+		{
+			"name": "modbusRTUSlaveRS485",
+			"path": "../modbusRTUSlaveRS485"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.ino": "cpp",
+			"cstdint": "cpp"
+		}
+	}
+}
