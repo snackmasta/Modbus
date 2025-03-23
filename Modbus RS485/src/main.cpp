@@ -1,39 +1,43 @@
-// Sender Code
-#include <Arduino.h>
-#include <SoftwareSerial.h>
+#include <ArduinoRS485.h>  // ArduinoModbus depends on the ArduinoRS485 library
+#include <ArduinoModbus.h>
 
-// Define the pins for the MAX485
-#define DE 3
-#define RE 2
- 
-// Create a SoftwareSerial object to communicate with the MAX485
-SoftwareSerial RS485Serial(10, 11); // RX, TX
- 
+// Define the DE/RE control pin for MAX485
+#define RS485_CONTROL_PIN 2  // Connect DE and RE pins of MAX485 to this pin
+
+const int registerAddress = 0; // Modbus register address
+int value = 12345; // Value to send
+
 void setup() {
-  // Initialize the serial communication
+  // Initialize Serial for debugging (optional)
   Serial.begin(9600);
-  RS485Serial.begin(9600);
- 
-  // Set the DE and RE pins as outputs
-  pinMode(DE, OUTPUT);
-  pinMode(RE, OUTPUT);
- 
-  // Set DE and RE high to enable transmission mode
-  digitalWrite(DE, HIGH);
-  digitalWrite(RE, HIGH);
+  while (!Serial); // Wait for Serial to be ready (for boards like Leonardo)
+
+  // Initialize RS485 with control pin
+  RS485.begin(9600); // Baud rate (9600 is good for long distances)
+  RS485.setDelays(10, 10); // Optional: Pre- and post-transmission delays in microseconds
+
+  // Start the Modbus RTU server with slave ID 1
+  if (!ModbusRTUServer.begin(1, 9600)) {
+    Serial.println("Failed to start Modbus RTU Server!");
+    while (1);
+  }
+
+  // Configure a holding register at address 0
+  ModbusRTUServer.configureHoldingRegisters(registerAddress, 1);
+
+  // Set the DE/RE control pin (handled automatically by ArduinoRS485 if defined)
+  pinMode(RS485_CONTROL_PIN, OUTPUT);
 }
- 
+
 void loop() {
-  // Generate random data
-  int data = random(0, 100);
- 
-  // Send data over RS485
-  RS485Serial.write(data);
- 
-  // Print the sent data to the serial monitor
-  Serial.print("Data sent: ");
-  Serial.println(data);
- 
-  // Wait for a while before sending the next data
-  delay(2000);
+  // Update the value in the holding register
+  ModbusRTUServer.holdingRegisterWrite(registerAddress, value);
+
+  // Poll for Modbus requests
+  ModbusRTUServer.poll();
+
+  // Optional: Debug output
+  Serial.print("Register value: ");
+  Serial.println(value);
+  delay(1000); // Slow down for testing
 }
