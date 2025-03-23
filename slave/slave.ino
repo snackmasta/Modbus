@@ -1,35 +1,31 @@
-#include <ArduinoRS485.h>  // Arduino RS485 library
-#include <ArduinoModbus.h> // Arduino Modbus library
+#include <ModbusRTUSlave.h>
 
-const int registerAddress = 0; // Address of the holding register to write
-int holdingRegister = 0;       // Variable to store the holding register value
+// Define Modbus slave address
+const byte slaveAddress = 1;
+
+// Define RS485 control pin
+const byte rs485EnablePin = 3;
+
+// Define ModbusRTUSlave object
+ModbusRTUSlave slave(Serial, rs485EnablePin);
+
+// Variable to store the mapped potentiometer value
+int mappedValue = 0;
 
 void setup() {
-  // Start the serial monitor for debugging
   Serial.begin(9600);
-  while (!Serial);
-
-  // Start the Modbus RTU server with slave ID 1
-  if (!ModbusRTUServer.begin(1, 9600)) {
-    Serial.println("Failed to start Modbus RTU Server!");
-    while (1);
-  }
-
-  // Configure holding register at address 0
-  ModbusRTUServer.configureHoldingRegisters(registerAddress, 1);
+  slave.begin(slaveAddress, 9600);
+  // Configure one holding register starting at address 0
+  slave.configureHoldingRegisters(0, 1);
 }
 
 void loop() {
-  // Poll for Modbus RTU requests
-  ModbusRTUServer.poll();
-
-  // Read the value of the holding register
-  int newValue = ModbusRTUServer.holdingRegisterRead(registerAddress);
-
-  // If the holding register value has changed, print it
-  if (newValue != holdingRegister) {
-    holdingRegister = newValue;
-    Serial.print("Holding register updated to: ");
-    Serial.println(holdingRegister);
-  }
+  // Read potentiometer value
+  int sensorValue = analogRead(A0);
+  // Map the value to the desired range
+  mappedValue = map(sensorValue, 0, 1023, 101, 200);
+  // Update the holding register with the new value
+  slave._holdingRegisters[0] = mappedValue; // Corrected line
+  // Listen for Modbus requests and respond
+  slave.poll();
 }
