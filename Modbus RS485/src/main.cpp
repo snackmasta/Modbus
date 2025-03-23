@@ -13,15 +13,15 @@ bool requestReceived = false;
 
 void setup() {
   // Initialize Serial for debugging (optional)
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial); // Wait for Serial to be ready (for boards like Leonardo)
 
   // Initialize RS485 with control pin
-  RS485.begin(9600); // Baud rate (9600 is good for long distances)
+  RS485.begin(115200); // Baud rate (115200 is good for long distances)
   RS485.setDelays(10, 10); // Optional: Pre- and post-transmission delays in microseconds
 
   // Start the Modbus RTU server with slave ID 1
-  if (!ModbusRTUServer.begin(1, 9600)) {
+  if (!ModbusRTUServer.begin(1, 115200)) {
     Serial.println("Failed to start Modbus RTU Server!");
     while (1);
   }
@@ -49,6 +49,7 @@ void loop() {
     lastRequestTime = millis(); // Update the last request timestamp
     idleMode = false; // Reset idle mode
     // Optional: Debug output only if request received.
+    Serial.println();
     Serial.print("Register value: ");
     Serial.print(value);
     Serial.println();
